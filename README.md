@@ -215,3 +215,254 @@ Este comando crea un nuevo archivo de migración en el directorio `database/migr
 
  `php artisan migrate --seed`
 Este comando ejecuta todas las migraciones pendientes y luego ejecuta los seeders de la base de datos. Los seeders se utilizan para poblar tu base de datos con datos de prueba o datos iniciales. La bandera `--seed` le dice a Laravel que ejecute la clase `DatabaseSeeder` después de que las migraciones se completen.
+
+
+Ejercicio 7 -
+
+Requisitos del Ejercicio
+Crear la base de datos test2 y conectar la aplicación a dicha base de datos. Emplear el comando `php artisan make:migration my_test_migration` para crear el fichero `database/migrations/<timestamp>_my_test_migration.php`. El archivo contiene dos métodos: `up()` y `down()`.
+
+Pasos de Implementación
+
+1. Creación de la base de datos test2:
+
+docker exec -it mariadb-server mariadb -u root -p
+CREATE DATABASE IF NOT EXISTS test2;
+
+
+2. Modificación de la configuración de la base de datos en .env:
+
+sed -i 's/DB_DATABASE=.*/DB_DATABASE=test2/' .env
+sed -i 's/DB_USERNAME=.*/DB_USERNAME=root/' .env
+sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=m1_s3cr3t/' .env
+sed -i 's/DB_HOST=.*/DB_HOST=127.0.0.1/' .env
+sed -i 's/DB_PORT=.*/DB_PORT=3307/' .env
+sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=mariadb/' .env
+
+
+3. Creación del archivo de migración:
+
+php artisan make:migration my_test_migration
+
+
+4. Adición de la estructura de la tabla en el archivo de migración:
+
+// En el método up()
+Schema::create('alumnos', function (Blueprint $table) {
+    $table->id(); 
+    $table->string('nombre'); 
+    $table->string('email')->unique(); 
+    $table->timestamps(); 
+});
+
+// En el método down()
+Schema::dropIfExists('alumnos');
+
+
+5. Ejecución de la migración:
+
+php artisan migrate
+
+
+Problemas Encontrados y Soluciones
+
+Problema 1: Error de Conexión a la Base de Datos
+Inicialmente se encontró el error "Access denied for user 'root'@'localhost'".
+
+Solución:
+Se agregaron los privilegios necesarios al usuario root:
+
+GRANT ALL PRIVILEGES ON test2.* TO 'root'@'%' IDENTIFIED BY 'm1_s3cr3t';
+GRANT ALL PRIVILEGES ON test2.* TO 'root'@'localhost' IDENTIFIED BY 'm1_s3cr3t';
+FLUSH PRIVILEGES;
+
+
+Problema 2: Configuración Incorrecta del Puerto
+La conexión a la base de datos falló porque el contenedor de MariaDB estaba usando el puerto 3307 en lugar del 3306.
+
+Solución:
+Se actualizó el DB_PORT en .env para que coincida con el puerto del contenedor:
+
+sed -i 's/DB_PORT=.*/DB_PORT=3307/' .env
+
+
+Verificación
+Se verificó exitosamente la creación de la tabla:
+
+USE test2;
+SHOW TABLES;
+
+La salida mostró la tabla 'alumnos' junto con otras tablas predeterminadas de Laravel, confirmando la implementación exitosa.
+
+Comprensión del Código de Migración
+
+La migración crea una tabla con la siguiente estructura:
+- `id`: Clave primaria auto-incrementable
+- `nombre`: Columna de tipo string para almacenar nombres
+- `email`: Columna de tipo string única para almacenar direcciones de correo electrónico
+- `timestamps`: Crea las columnas `created_at` y `updated_at`
+
+El método `down()` asegura la eliminación limpia de la tabla si es necesario, permitiendo migraciones reversibles.
+
+Respuestas a las Preguntas del Ejercicio
+
+¿Qué hace el método `create` de la clase Schema?
+El método `create` en la clase Schema se utiliza para crear una nueva tabla en la base de datos. Este método toma dos parámetros: el nombre de la tabla que se va a crear y una función de callback que define la estructura de la tabla utilizando el objeto Blueprint.
+
+¿Qué hace `$table->string('email')->unique()`?
+Esta línea de código realiza dos acciones:
+1. `string('email')`: Define una columna llamada "email" de tipo VARCHAR en la base de datos
+2. `->unique()`: Añade una restricción UNIQUE a la columna, asegurando que no puedan existir dos registros con el mismo valor de email
+
+¿Cuántas tablas hay definidas?
+Después de ejecutar las migraciones, se crearon las siguientes tablas:
+- alumnos
+- cache
+- cache_locks
+- failed_jobs
+- job_batches
+- jobs
+- migrations
+- password_reset_tokens
+- sessions
+- users
+
+En total, hay 10 tablas definidas en la base de datos test2
+
+
+
+
+Ejercicio 8: Añadir Campo 'apellido' a la Tabla Alumnos
+
+Pregunta del Ejercicio
+¿Qué pasos debemos dar si queremos añadir el campo $table->string('apellido'); a la tabla alumnos del ejercicio anterior?
+
+Procedimiento de Solución
+
+1. Creación de la Migración
+Primero, creé una nueva migración específica para añadir el campo 'apellido':
+bash
+php artisan make:migration add_apellido_to_alumnos_table --table=alumnos
+
+
+2. Configuración de la Migración
+La migración se creó en el archivo database/migrations/[timestamp]_add_apellido_to_alumnos_table.php con la siguiente estructura:
+
+php
+public function up()
+{
+    Schema::table('alumnos', function (Blueprint $table) {
+        $table->string('apellido')->after('nombre')->nullable();
+    });
+}
+
+public function down()
+{
+    Schema::table('alumnos', function (Blueprint $table) {
+        $table->dropColumn('apellido');
+    });
+}
+
+
+3. Ejecución de la Migración
+bash
+php artisan migrate
+
+
+Problemas Encontrados y Soluciones
+
+Problema 1: Error de Sintaxis
+Al crear la migración inicialmente, encontré un error de sintaxis en el método up():
+
+Error:
+
+ParseError: syntax error, unexpected token "{"
+
+
+Causa:
+El error se produjo porque había tanto un dos puntos : como una llave { después de la declaración del método up().
+
+Solución:
+Se corrigió eliminando el dos puntos : después de up(), dejando solo la llave {.
+
+Explicación de la Solución Final
+1. La migración utiliza el método Schema::table() para modificar una tabla existente.
+2. Se añade el campo 'apellido' como una cadena de texto (VARCHAR en la base de datos).
+3. El modificador ->after('nombre') coloca el nuevo campo después del campo 'nombre'.
+4. El modificador ->nullable() permite que el campo pueda estar vacío, lo cual es necesario ya que los registros existentes no tendrán este dato.
+5. En caso de necesitar revertir los cambios, el método down() eliminará la columna usando dropColumn().
+
+Verificación
+Para verificar que el campo se añadió correctamente, se puede usar el siguiente comando:
+sql
+DESCRIBE alumnos;
+
+
+Este ejercicio demuestra cómo Laravel permite modificar la estructura de la base de datos de manera segura y reversible mediante el sistema de migraciones.
+
+
+
+
+
+Ejercicio 9 - Seeders en Laravel
+
+Objetivo del Ejercicio
+Crear datos de prueba para la tabla `alumnos` utilizando los Seeders de Laravel.
+
+Pasos Realizados
+
+1. Creación del Seeder
+
+php artisan make:seeder AlumnosTableSeeder
+
+
+2. Modificación del archivo AlumnosTableSeeder.php
+- Ubicación: `database/seeders/AlumnosTableSeeder.php`
+- Se añadió el código necesario para insertar tres alumnos de prueba
+- Se importaron las clases necesarias:
+  - Illuminate\Support\Facades\DB
+  - Carbon\Carbon
+
+3. Actualización del DatabaseSeeder.php
+- Ubicación: `database/seeders/DatabaseSeeder.php`
+- Se añadió la llamada al AlumnosTableSeeder
+
+4. Ejecución del Seeder
+
+php artisan db:seed
+
+
+Problemas Encontrados y Soluciones
+
+Problema 1: Class "Database\Seeders\DB" not found
+- Descripción: Al ejecutar el seeder, Laravel no podía encontrar la clase DB
+- Causa: Faltaba importar la clase DB en el archivo AlumnosTableSeeder.php
+- Solución: Se añadió la línea `use Illuminate\Support\Facades\DB;` al inicio del archivo
+
+Verificación de Datos
+
+Para verificar que los datos se insertaron correctamente:
+
+
+docker exec -it mariadb-server mariadb -u root -p
+USE test2;
+SELECT * FROM alumnos;
+
+
+Los datos insertados fueron:
+1. Juan Pérez (juan.perez@example.com)
+2. María González (maria.gonzalez@example.com)
+3. Carlos López (carlos.lopez@example.com)
+
+Conceptos Clave Aprendidos
+
+1. Los Seeders son una herramienta fundamental en Laravel para crear datos de prueba
+2. Es importante importar todas las clases necesarias (DB, Carbon) en los archivos de Seeder
+3. La estructura del proyecto debe mantenerse organizada siguiendo las convenciones de Laravel
+4. El comando `php artisan db:seed` ejecuta todos los seeders registrados en DatabaseSeeder.php
+
+Conclusión
+El ejercicio se completó exitosamente, logrando crear y poblar la tabla de alumnos con datos de prueba utilizando los Seeders de Laravel. Esta práctica es fundamental para el desarrollo y prueba de aplicaciones, ya que permite tener datos consistentes para realizar pruebas.
+
+
+
