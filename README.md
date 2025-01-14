@@ -466,3 +466,79 @@ El ejercicio se completó exitosamente, logrando crear y poblar la tabla de alum
 
 
 
+
+Ejercicio 10 - Sistema de Gestión de Notas
+
+Objetivo del Ejercicio
+Implementar un sistema para gestionar las notas de los alumnos en diferentes asignaturas según el siguiente diagrama E-R proporcionado:
+
+Pasos Realizados
+
+1. Creación de Migraciones
+Se crearon tres migraciones principales para implementar el diagrama E-R:
+- Tabla alumnos (ya existente de ejercicios anteriores)
+- Tabla asignaturas (nueva)
+- Tabla notas (nueva)
+
+Comandos utilizados:
+
+php artisan make:migration create_asignaturas_table
+php artisan make:migration create_notas_table
+
+2. Problemas Encontrados y Soluciones
+Problema 1: Conflicto con Tabla Existente
+
+Problema: Al intentar crear la tabla 'alumnos', surgió un error porque ya existía una migración previa que la creaba.
+Solución: Se modificó la nueva migración para incluir una verificación de existencia de la tabla:
+
+phpCopyif (!Schema::hasTable('alumnos')) {
+    Schema::create('alumnos', function (Blueprint $table) {
+        // ...
+    });
+}
+
+3. Estructura Final de las Tablas
+Tabla Alumnos
+id (PK)
+nombre
+email (único)
+timestamps
+
+Tabla Asignaturas
+id (PK)
+nombre
+descripcion
+timestamps
+
+Tabla Notas
+id (PK)
+alumno_id (FK)
+asignatura_id (FK)
+nota
+timestamps
+
+4. Seeders para Datos de Prueba
+Se crearon seeders para poblar la base de datos con datos de ejemplo:
+
+AlumnosTableSeeder
+AsignaturasTableSeeder
+NotasTableSeeder
+
+Verificación y Pruebas
+Se ejecutaron las migraciones con php artisan migrate:fresh --seed
+Se verificó la estructura correcta de las tablas
+Se comprobó la integridad referencial entre las tablas
+
+Respuestas a las Preguntas del Ejercicio:
+¿Qué hace el método create de la clase Schema?
+El método create se utiliza para crear nuevas tablas en la base de datos, definiendo su estructura y atributos.
+
+¿Qué hace $table->string('email')->unique();?
+Esta línea crea una columna de tipo string llamada 'email' y la marca como única, asegurando que no pueda haber valores duplicados.
+
+¿Cuántas tablas hay definidas en el sistema final?
+El sistema cuenta con tres tablas principales:
+alumnos
+asignaturas
+notas
+
